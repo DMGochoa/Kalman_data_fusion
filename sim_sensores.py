@@ -76,6 +76,7 @@ def termocupla(T_i=np.array([])):
     return V
 
 if __name__ == '__main__':
+    # Se define una prueba de temperatura siguiendo una linea.
     m = 20
     t = np.linspace(0, 10, 10)
     T = m * t
