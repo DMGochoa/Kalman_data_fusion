@@ -8,7 +8,7 @@ import matplotlib.animation as animation
 import numpy as np
 from numpy.linalg import svd
 
-class kalman:
+class Kalman:
     """
     clase kalman     
     """
@@ -24,6 +24,8 @@ class kalman:
         # Se declaran variables para el caso de usar kalman en aplicación real
         self.Xprior = None
         self.Pprior = None
+        
+        self.contador = True
         
     def simulacion(self, medidas, x0, P0):
         """
@@ -74,15 +76,14 @@ class kalman:
             ym = medida
 
         if self.contador:
-            #print('entre')
-            self.Xprior = np.dot(self.F, x0).reshape(-1)
+            self.Xprior = np.dot(self.F, x0)#.reshape(-1)
             self.Pprior = np.dot(self.H, P0) + self.Q
             self.contador = False
         else:
             self.Xprior = np.dot(self.F, self.Xposterior)
             self.Pprior = np.dot(self.H, self.Pposterior) + self.Q
 
-        if len(self.H) > 1:
+        if len(self.F) > 1:
             u, s, v = svd(self.H @ self.Pprior @ self.H.T + self.R)
             K = self.Pprior @ self.H.T @ (v.T @ np.identity(len(s))* 1/s @ u.T)
             self.Xposterior = self.Xprior + K @ (ym - self.H @ self.Xprior)
@@ -91,5 +92,4 @@ class kalman:
             K = self.Pprior * self.H.T * 1/(self.H * self.Pprior * self.H.T + self.R)
             self.Xposterior = self.Xprior + K * (ym - self.H * self.Xprior)
             self.Pposterior = (np.identity(len(K)) - K * self.H) * self.Pprior
-
         return self.Xposterior[0], self.Pposterior[0]

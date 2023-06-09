@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
@@ -111,7 +112,12 @@ simulation_data_df = pd.DataFrame({
     'ADC_par': ADC_par
 })
 # Guardar los datos en un archivo CSV
-simulation_data_df.to_csv('simulation_data.csv', index=False)
+simulation_data_df.to_csv('./SimulacionGerman/simulation_data.csv', index=False)
 plt.show()
+
+print(T_amb)
+# Use json.dump to write the dictionary to a file
+with open('./SimulacionGerman/rtd_ntc.json', 'w') as f:
+    json.dump({'rtd':rtd, 'ntc':ntc}, f)
 
 
