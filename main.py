@@ -1,6 +1,7 @@
 import sys
 sys.path.append("./")
 from Filtro.kalman import Kalman
+from Utils.metrics import RegressionMetrics
 from SimulacionProceso.circuito import CircuitoPasaBajos
 from SimulacionProceso.odessol import SistemaLineal
 from Utils.custom_logger import CustomLogger
@@ -87,7 +88,7 @@ class Simulacion:
         F = np.array([1])
         H = np.array([1])
         Q = np.array([8e-2])
-        R = np.array([0.1])
+        R = np.array([0.01])
         #F = np.array(self.planta.parametros['A'])
         #print(F)
         #H = np.array([[1, 0]])
@@ -98,7 +99,9 @@ class Simulacion:
         salida_kalman = [[], []]
         for i in range(len(datos_DAQ[0])):
             #for medida in datos_DAQ:
-            x, p = filtro.kalman(datos_DAQ[0][i], 0, 0)#, np.array([0, 0]), np.array([[1e-5, 0], [0, 1e-3]]))
+            for medida in datos_DAQ:
+                x, p = filtro.kalman(medida[i], 0, 0)#, np.array([0, 0]), np.array([[1e-5, 0], [0, 1e-3]]))
+                x, p = filtro.kalman(datos_reales[i], 0, 0)
             salida_kalman[0].append(x)
             salida_kalman[1].append(p)
 
@@ -111,27 +114,42 @@ class Simulacion:
                 'datos_amplificados_diferenciales': datos_amplificados_diferenciales,
                 'datos_DAQ': datos_DAQ,
                 'datos_kalman_x': salida_kalman[0],
-                'datos_kalman_p': salida_kalman[1]}
+                'datos_kalman_p': salida_kalman[1],
+                'metricas_kalman': RegressionMetrics(datos_reales, salida_kalman[0]),
+                'metricas_DAQ': [RegressionMetrics(datos_reales, datos_DAQ[i]) for i in range(len(datos_DAQ))]}
         # Graficar
 
 
 if __name__ == "__main__":
-    dt = 1e-4
-    tiempo = np.arange(0, 0.05, dt)
-    entrada = np.zeros_like(tiempo)
-    entrada[0:2] = 5
+    dt = 1e-3
+    # tiempo = np.arange(0, 0.05, dt)
+    # entrada = np.zeros_like(tiempo)
+    # entrada[0:2] = 5
+    f1 = 5
+    f2 = 10
+    senal = lambda t, f: 3 * np.sin(2*np.pi*f*t)
+    t1 = np.arange(0, 1, dt)
+    t2 = np.arange(1, 2, dt)
+    entrada = np.concatenate((senal(t1, f1), senal(t2, f2)))
+    tiempo= np.arange(0, 2, dt)
+    
     simulacion = Simulacion()
     datos_simulacion = simulacion.simular_proceso(entrada, 0, dt=dt, metodo='rk4', ruido=0.1)
-    #simulacion.simular_planta(entrada, 0, dt, 'rk4')
+    print('Kalman mse: ',datos_simulacion['metricas_kalman'].mse)
+    [print(f'Sensor {i} mse: ', datos_simulacion['metricas_DAQ'][i].mse) for i in range(len(datos_simulacion['metricas_DAQ']))]
+    print('Kalman r2: ',datos_simulacion['metricas_kalman'].r2)
+    [print(f'Sensor {i} r2: ', datos_simulacion['metricas_DAQ'][i].r2) for i in range(len(datos_simulacion['metricas_DAQ']))]
+    
     i = 1
     for datos in datos_simulacion['datos_DAQ']:
-        plt.plot(tiempo, datos, '--', label=f'Sensor {i}', alpha=0.5)
+        plt.plot(tiempo, (3/1000) * datos, '--', label=f'Sensor {i}', alpha=0.5)
         i += 1
-    plt.plot (tiempo, datos_simulacion['datos_kalman_x'], '-*', label='Kalman', color='black')
-    plt.plot (tiempo, datos_simulacion['datos_reales'], label='Real')
-    plt.title('Respuesta al escalon')
+    plt.plot (tiempo, (3/1000) * np.array(datos_simulacion['datos_kalman_x']), '-*', label='Kalman', color='black')
+    plt.plot (tiempo, (3/1000) * np.array(datos_simulacion['datos_reales']), label='Real')
+    plt.title('Voltaje en el condensador')
     plt.xlabel('Tiempo [s]')
-    plt.ylabel('Amplitud')
+    plt.ylabel('$V_c(t) [V]$')
     plt.legend()
     plt.grid()
+    plt.tight_layout()
     plt.show()

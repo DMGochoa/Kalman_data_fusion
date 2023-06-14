@@ -11,7 +11,6 @@ class RegressionMetrics:
         self.r2 = self.r2_score()
         self.mape = self.mean_absolute_percentage_error()
         self.mase = self.mean_absolute_scaled_error()
-        self.smape = self.symmetric_mean_absolute_percentage_error()
 
     def mean_squared_error(self):
         return np.mean((self.diff) ** 2)
@@ -30,6 +29,3 @@ class RegressionMetrics:
 
     def mean_absolute_scaled_error(self):
         return np.mean(np.abs((self.diff) / (np.mean(np.abs(self.diff)))))
-
-    def symmetric_mean_absolute_percentage_error(self):
-        return 100 * np.mean(np.abs(-self.diff) / ((np.abs(self.y_true) + np.abs(self.y_pred)) / 2))
